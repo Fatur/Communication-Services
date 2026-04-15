@@ -1,0 +1,55 @@
+# Build directories
+bin/
+obj/
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# Local appsettings
+appsettings.Development.json
+appsettings.local.json
+
+# Secrets
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# NuGet packages
+*.nupkg
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+
+# Others
+*.db
+*.bak
+
+# JetBrains Rider
+.idea/
+
+# Ignore publish output
+publish/
+
+# Docker
+**/docker-compose*.*
+
+# Rider caches
+.idea/
+
+# JetBrains Rider local history
+.idea/.idea.local
