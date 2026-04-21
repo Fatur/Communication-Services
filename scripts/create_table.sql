@@ -15,3 +15,6 @@ CREATE TABLE message_log (
 );
 
 CREATE INDEX IX_message_log_status_created_at ON message_log (status, created_at);
+CREATE NONCLUSTERED INDEX IX_message_log_processing
+ON message_log (status, next_retry_at, processing_at, created_at)
+INCLUDE (id);

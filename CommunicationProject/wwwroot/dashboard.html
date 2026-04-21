@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Message Monitoring Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 16px; color: #111; }
+    h1 { margin-bottom: 8px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+    .card { background:#fff; border:1px solid #e1e1e1; padding:12px; border-radius:6px; min-width:140px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
+    .card .value { font-size: 1.6rem; font-weight:700; }
+    .section { margin-top:16px; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; }
+    th, td { padding:8px 6px; border-bottom:1px solid #eee; text-align:left; font-size:0.9rem; }
+    tr.failed { background: #ffecec; }
+    tr.high-retry { background: #fff7e6; }
+    .small { font-size:0.85rem; color:#666; }
+    #charts { display:flex; gap:12px; align-items:flex-start; }
+    canvas { background: #fff; border:1px solid #eee; border-radius:6px; padding:8px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <h1>Message Monitoring Dashboard</h1>
+
+  <div class="section">
+    <div class="row" id="summaryRow">
+      <div class="card">
+        <div class="small">Total</div>
+        <div id="total" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="small">Sent</div>
+        <div id="sent" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="small">Pending</div>
+        <div id="pending" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="small">Processing</div>
+        <div id="processing" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="small">Failed</div>
+        <div id="failed" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="small">Messages / min</div>
+        <div id="throughput" class="value">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="charts">
+    <div style="flex:1; min-width:320px;">
+      <canvas id="statusChart" width="400" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Recent Messages</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Tenant</th><th>Channel</th><th>Status</th><th>Recipient</th><th>Retry</th><th>Created At</th>
+        </tr>
+      </thead>
+      <tbody id="recentBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Failed Messages</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Error</th><th>Retry Count</th></tr>
+      </thead>
+      <tbody id="failedBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const REFRESH_MS = 3000;
+    let statusChart;
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      return await res.json();
+    }
+
+    async function updateSummary() {
+      try {
+        const s = await fetchJson('/api/dashboard/summary');
+        document.getElementById('total').textContent = s.total ?? s.Total ?? 0;
+        document.getElementById('sent').textContent = s.sent ?? s.Sent ?? 0;
+        document.getElementById('pending').textContent = s.pending ?? s.Pending ?? 0;
+        document.getElementById('processing').textContent = s.processing ?? s.Processing ?? 0;
+        document.getElementById('failed').textContent = s.failed ?? s.Failed ?? 0;
+        updateChart(s);
+      } catch (e) {
+        console.error('summary fetch failed', e);
+      }
+    }
+
+    async function updateThroughput() {
+      try {
+        const t = await fetchJson('/api/dashboard/throughput');
+        document.getElementById('throughput').textContent = t.messages_per_minute ?? t.SentLastMinute ?? 0;
+      } catch (e) {
+        console.error('throughput fetch failed', e);
+      }
+    }
+
+    function createCell(text) {
+      const td = document.createElement('td');
+      td.textContent = text ?? '';
+      return td;
+    }
+
+    async function updateRecent() {
+      try {
+        const rows = await fetchJson('/api/dashboard/recent');
+        const body = document.getElementById('recentBody');
+        body.innerHTML = '';
+        for (const r of rows) {
+          const tr = document.createElement('tr');
+          if ((r.status || r.Status || '').toLowerCase() === 'failed') tr.classList.add('failed');
+          const retry = r.retryCount ?? r.RetryCount ?? 0;
+          if (retry > 3) tr.classList.add('high-retry');
+
+          tr.appendChild(createCell(r.id ?? r.Id));
+          tr.appendChild(createCell(r.tenantId ?? r.TenantId));
+          tr.appendChild(createCell(r.channel ?? r.Channel));
+          tr.appendChild(createCell(r.status ?? r.Status));
+          tr.appendChild(createCell(r.recipient ?? r.Recipient));
+          tr.appendChild(createCell(retry));
+          const createdAt = new Date(r.createdAt ?? r.CreatedAt);
+          tr.appendChild(createCell(isNaN(createdAt) ? '' : createdAt.toLocaleString()));
+          body.appendChild(tr);
+        }
+      } catch (e) {
+        console.error('recent fetch failed', e);
+      }
+    }
+
+    async function updateErrors() {
+      try {
+        const list = await fetchJson('/api/dashboard/errors');
+        const body = document.getElementById('failedBody');
+        body.innerHTML = '';
+        for (const e of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(createCell(e.id ?? e.Id));
+          tr.appendChild(createCell(e.errorMessage ?? e.ErrorMessage));
+          tr.appendChild(createCell(e.retryCount ?? e.RetryCount));
+          body.appendChild(tr);
+        }
+      } catch (err) {
+        console.error('errors fetch failed', err);
+      }
+    }
+
+    function ensureChart() {
+      const ctx = document.getElementById('statusChart').getContext('2d');
+      if (!statusChart) {
+        statusChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Sent','Pending','Processing','Failed'],
+            datasets: [{ label: 'Messages', data: [0,0,0,0], backgroundColor: ['#4caf50','#2196f3','#ff9800','#f44336'] }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+    }
+
+    function updateChart(summary) {
+      ensureChart();
+      const sent = summary.sent ?? summary.Sent ?? 0;
+      const pending = summary.pending ?? summary.Pending ?? 0;
+      const processing = summary.processing ?? summary.Processing ?? 0;
+      const failed = summary.failed ?? summary.Failed ?? 0;
+      statusChart.data.datasets[0].data = [sent, pending, processing, failed];
+      statusChart.update();
+    }
+
+    async function refreshAll() {
+      await Promise.allSettled([
+        updateSummary(),
+        updateThroughput(),
+        updateRecent(),
+        updateErrors()
+      ]);
+    }
+
+    // Start
+    (function init() {
+      refreshAll();
+      setInterval(refreshAll, REFRESH_MS);
+    })();
+  </script>
+</body>
+</html>
