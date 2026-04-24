@@ -1,0 +1,183 @@
+You are a senior .NET engineer specializing in distributed systems and TDD.
+
+Create a COMPLETE test specification (NOT implementation) for a Rate Limiter used in a multi-tenant messaging system.
+
+---
+
+## CONTEXT
+
+The system sends messages (Email, WhatsApp) using background workers.
+
+To prevent overload and provider throttling, a rate limiter is used before processing messages.
+
+The rate limiter is called like:
+
+```
+Task<bool> TryAcquireAsync(string tenantId, string channel)
+```
+
+If it returns:
+
+* true → message can be processed
+* false → message must be rescheduled
+
+---
+
+## GOAL
+
+Design a test specification that ensures:
+
+* correctness
+* fairness
+* stability under concurrency
+* proper isolation per tenant and channel
+
+---
+
+## OUTPUT FORMAT
+
+Provide:
+
+1. Test class structure
+2. Test case names (clear, descriptive)
+3. Arrange / Act / Assert description
+4. Required mocks or test setup
+5. Edge cases
+6. Concurrency scenarios
+
+DO NOT write implementation code.
+
+---
+
+## REQUIRED BEHAVIOR
+
+---
+
+### 1. BASIC LIMITING
+
+* Should_allow_request_within_limit
+* Should_block_request_when_limit_exceeded
+* Should_allow_request_after_refill_period
+
+---
+
+### 2. PER TENANT ISOLATION
+
+* Should_isolate_limits_per_tenant
+* Should_not_block_other_tenants_when_one_exceeds_limit
+
+---
+
+### 3. PER CHANNEL ISOLATION
+
+* Should_isolate_limits_per_channel
+* Should_allow_email_but_block_whatsapp_if_only_whatsapp_limit_exceeded
+
+---
+
+### 4. TENANT + CHANNEL COMBINATION
+
+* Should_apply_limit_per_tenant_and_channel_combination
+* Should_not_mix_tokens_between_tenants_or_channels
+
+---
+
+### 5. CONCURRENCY
+
+* Should_handle_multiple_concurrent_requests_correctly
+* Should_not_allow_more_than_limit_under_high_concurrency
+* Should_be_thread_safe
+
+---
+
+### 6. BURST BEHAVIOR
+
+* Should_allow_burst_up_to_bucket_capacity
+* Should_block_after_burst_exceeds_capacity
+
+---
+
+### 7. REFILL LOGIC
+
+* Should_refill_tokens_over_time
+* Should_not_exceed_max_capacity
+* Should_refill_gradually_or_per_interval
+
+---
+
+### 8. EDGE CASES
+
+* Null tenantId
+* Empty channel
+* Very high request rate
+* Very low limits (e.g. 1 request/sec)
+
+---
+
+### 9. FAILURE SCENARIOS
+
+* Should_fail_safe_or_fail_open_when_internal_error_occurs
+* Should_not_crash_under_invalid_input
+
+---
+
+### 10. PERFORMANCE
+
+* Should_handle_thousands_of_requests_per_second
+* Should_not_block_threads (async friendly)
+
+---
+
+## TEST DATA CONFIGURATION
+
+Include example configuration:
+
+* tenant1 email: 5 req/sec
+* tenant1 whatsapp: 2 req/sec
+* tenant2 email: 10 req/sec
+
+---
+
+## ASSERTIONS
+
+Each test must clearly verify:
+
+* returned value (true/false)
+* number of allowed requests
+* behavior under time progression
+* behavior under concurrency
+
+---
+
+## TIME CONTROL
+
+Tests should simulate time progression using:
+
+* manual clock abstraction OR
+* virtual time (recommended)
+
+Avoid relying on real delays.
+
+---
+
+## DESIGN NOTES (IMPORTANT)
+
+Encourage:
+
+* token bucket or leaky bucket algorithm
+* thread-safe data structures
+* minimal locking
+
+---
+
+## GOAL
+
+The spec must be strong enough to:
+
+* guide full implementation
+* ensure no race conditions
+* guarantee production stability
+
+---
+
+Focus on clarity, completeness, and real-world robustness.

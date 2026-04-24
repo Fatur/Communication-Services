@@ -1,11 +1,30 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.5.11709.299 stable
+VisualStudioVersion = 18.5.11709.299
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommunicationServices", "CommunicationProject\CommunicationServices.csproj", "{FDFF2CD8-63D8-67C7-6676-9F006920EB38}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoadTest", "LoadTestProject\LoadTest.csproj", "{5E3544E6-8A73-4FAD-B708-8A8A2795A6B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommunicationServices.UnitTests", "tests\CommunicationServices.UnitTests\CommunicationServices.UnitTests.csproj", "{9C1AD226-1CD8-CE7E-F458-5E4CE3D88649}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B6CD06E6-2506-40D6-8B1C-5C9CCD0248E9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Specs", "Specs", "{C8E2CA89-8224-4C35-991E-26243A5F4BDA}"
+	ProjectSection(SolutionItems) = preProject
+		specs\CircuitBreakerSpec.txt = specs\CircuitBreakerSpec.txt
+		specs\MessageProcessingSpec.txt = specs\MessageProcessingSpec.txt
+		specs\RateLimiterSpec.txt = specs\RateLimiterSpec.txt
+		specs\RepositorySpec.txt = specs\RepositorySpec.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{95DCC8A9-FE25-472E-AB14-93CE3A3D6019}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\create_table.sql = scripts\create_table.sql
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommunicationServices.IntegrationTests", "tests\CommunicationServices.IntegrationTests\CommunicationServices.IntegrationTests.csproj", "{A3AE9EE5-BDA2-C656-3096-1872EFB7B166}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,9 +40,21 @@ Global
 		{5E3544E6-8A73-4FAD-B708-8A8A2795A6B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E3544E6-8A73-4FAD-B708-8A8A2795A6B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E3544E6-8A73-4FAD-B708-8A8A2795A6B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C1AD226-1CD8-CE7E-F458-5E4CE3D88649}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C1AD226-1CD8-CE7E-F458-5E4CE3D88649}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C1AD226-1CD8-CE7E-F458-5E4CE3D88649}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1AD226-1CD8-CE7E-F458-5E4CE3D88649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3AE9EE5-BDA2-C656-3096-1872EFB7B166}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3AE9EE5-BDA2-C656-3096-1872EFB7B166}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3AE9EE5-BDA2-C656-3096-1872EFB7B166}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3AE9EE5-BDA2-C656-3096-1872EFB7B166}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C8E2CA89-8224-4C35-991E-26243A5F4BDA} = {B6CD06E6-2506-40D6-8B1C-5C9CCD0248E9}
+		{95DCC8A9-FE25-472E-AB14-93CE3A3D6019} = {B6CD06E6-2506-40D6-8B1C-5C9CCD0248E9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F8271A3F-5887-4DBD-847C-10B2DA495E50}

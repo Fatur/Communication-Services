@@ -1,0 +1,234 @@
+You are a senior .NET engineer specializing in resilient distributed systems and TDD.
+
+Create a COMPLETE test specification (NOT implementation) for a Circuit Breaker component used in a multi-tenant messaging system.
+
+---
+
+## CONTEXT
+
+The messaging system sends Email and WhatsApp messages using external providers.
+
+To prevent cascading failures and provider overload, a Circuit Breaker is used.
+
+The interface behaves like:
+
+```
+bool IsOpen(string channel)
+void OnSuccess(string channel)
+void OnFailure(string channel)
+TimeSpan? GetRetryDelay(string channel)
+```
+
+The circuit breaker maintains state PER CHANNEL.
+
+Channels:
+
+* email
+* whatsapp
+
+---
+
+## GOAL
+
+Design a production-grade test specification to validate:
+
+* correct state transitions
+* resilience behavior
+* concurrency safety
+* retry timing
+* isolation between channels
+
+---
+
+## OUTPUT FORMAT
+
+Provide:
+
+1. Test class structure
+2. Test case names
+3. Arrange / Act / Assert descriptions
+4. Required mocks or setup
+5. Edge cases
+6. Concurrency scenarios
+
+DO NOT write implementation code.
+
+---
+
+## REQUIRED STATES
+
+The circuit breaker must support:
+
+1. Closed
+
+   * Normal operation
+   * Requests allowed
+
+2. Open
+
+   * Failures exceeded threshold
+   * Requests blocked
+
+3. Half-Open
+
+   * Recovery/testing mode
+   * Limited requests allowed
+
+---
+
+## REQUIRED BEHAVIOR
+
+---
+
+### 1. CLOSED STATE
+
+* Should_start_in_closed_state
+* Should_allow_requests_when_closed
+* Should_remain_closed_when_failures_below_threshold
+
+---
+
+### 2. FAILURE THRESHOLD
+
+* Should_open_circuit_after_failure_threshold_reached
+* Should_track_failures_per_channel
+* Should_not_mix_failure_counts_between_channels
+
+Example:
+
+* threshold = 5 failures
+
+---
+
+### 3. OPEN STATE
+
+* Should_block_requests_when_open
+* Should_return_retry_delay_when_open
+* Should_not_allow_requests_until_timeout_expires
+
+---
+
+### 4. HALF-OPEN STATE
+
+* Should_transition_to_half_open_after_timeout
+* Should_allow_limited_requests_in_half_open
+* Should_reopen_if_half_open_request_fails
+* Should_close_if_half_open_request_succeeds
+
+---
+
+### 5. SUCCESS HANDLING
+
+* Should_reset_failure_count_on_success
+* Should_close_circuit_after_successful_recovery
+
+---
+
+### 6. CHANNEL ISOLATION
+
+* Should_maintain_separate_state_per_channel
+* Should_not_open_email_when_whatsapp_fails
+* Should_not_share_retry_delay_between_channels
+
+---
+
+### 7. CONCURRENCY
+
+* Should_be_thread_safe
+* Should_handle_multiple_concurrent_failures
+* Should_not_corrupt_state_under_concurrency
+* Should_not_transition_states_incorrectly_under_race_conditions
+
+---
+
+### 8. RETRY DELAY
+
+* Should_return_correct_retry_delay
+* Should_reduce_remaining_delay_over_time
+* Should_return_null_when_closed
+
+---
+
+### 9. EDGE CASES
+
+* Null channel
+* Empty channel
+* Unknown channel
+* Very rapid failure bursts
+* Success after long idle period
+
+---
+
+### 10. FAILURE RECOVERY
+
+* Should_recover_after_provider_restored
+* Should_prevent_retry_storms
+* Should_not_flap_between_states_excessively
+
+---
+
+### 11. PERFORMANCE
+
+* Should_handle_high_request_volume
+* Should_use_minimal_locking
+* Should_not_block_threads
+
+---
+
+## CONFIGURATION EXAMPLES
+
+Provide examples:
+
+* failureThreshold = 5
+* openDuration = 60 seconds
+* halfOpenMaxRequests = 1
+
+---
+
+## ASSERTIONS
+
+Each test must clearly verify:
+
+* current state
+* retry delay
+* allowed/blocked behavior
+* state transitions
+* failure count reset
+* isolation per channel
+
+---
+
+## TIME CONTROL
+
+Tests must simulate time progression using:
+
+* clock abstraction OR
+* virtual time
+
+Avoid real Thread.Sleep delays.
+
+---
+
+## DESIGN NOTES
+
+Encourage:
+
+* thread-safe state management
+* atomic state transitions
+* minimal locking
+* per-channel dictionaries/state containers
+
+---
+
+## GOAL
+
+The spec must be strong enough to guarantee:
+
+* resilience
+* no race conditions
+* predictable recovery behavior
+* production reliability
+
+---
+
+Focus on clarity, completeness, and real-world robustness.

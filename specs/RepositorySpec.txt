@@ -1,0 +1,442 @@
+You are a senior .NET engineer specializing in SQL Server, concurrency, and integration testing.
+
+Create a COMPLETE integration test specification (NOT implementation) for DapperMessageRepository.
+
+The repository uses:
+
+* Dapper
+* SQL Server
+* real database integration tests
+* message_log table
+* concurrency-safe claiming logic
+
+The goal is to validate REAL SQL behavior, locking behavior, concurrency correctness, and state transitions.
+
+DO NOT mock the database.
+
+---
+
+## CONTEXT
+
+Repository methods:
+
+* InsertAsync
+* GetByIdAsync
+* ClaimPendingAsync
+* UpdateAsync
+
+The repository uses SQL Server locking hints:
+
+* ROWLOCK
+* READPAST
+* UPDLOCK
+
+ClaimPendingAsync:
+
+* claims pending messages
+* marks them as processing
+* recovers stuck processing messages
+* must avoid duplicate claims
+
+UpdateAsync:
+
+* updates only rows currently in processing state
+
+---
+
+## TEST ENVIRONMENT
+
+Use:
+
+* SQL Server Express or LocalDB
+* real database
+* isolated test database
+* transactional cleanup OR recreate schema per test
+
+Avoid mocking Dapper or IDbConnection.
+
+---
+
+## OUTPUT FORMAT
+
+Provide:
+
+1. Test class structure
+2. Test case names
+3. Arrange / Act / Assert descriptions
+4. Required database setup
+5. Required seed data
+6. Concurrency scenarios
+7. Cleanup strategy
+
+DO NOT write actual implementation code.
+
+---
+
+# REQUIRED TEST CATEGORIES
+
+---
+
+## 1. INSERT TESTS
+
+### Should_insert_message_successfully
+
+Arrange:
+
+* create MessageLog
+
+Act:
+
+* call InsertAsync
+
+Assert:
+
+* row exists in database
+* all columns persisted correctly
+
+---
+
+## 2. GET TESTS
+
+### Should_return_message_by_id
+
+Arrange:
+
+* insert row
+
+Act:
+
+* GetByIdAsync
+
+Assert:
+
+* correct mapping
+* correct property values
+
+---
+
+### Should_return_null_when_message_not_found
+
+---
+
+## 3. CLAIM PENDING TESTS
+
+### Should_claim_pending_messages
+
+Arrange:
+
+* insert pending messages
+
+Act:
+
+* ClaimPendingAsync
+
+Assert:
+
+* returned messages are processing
+* processing_at set
+* only pending rows claimed
+
+---
+
+### Should_respect_batch_size
+
+Arrange:
+
+* insert 100 pending rows
+
+Act:
+
+* ClaimPendingAsync(10)
+
+Assert:
+
+* exactly 10 claimed
+
+---
+
+### Should_skip_future_retry_messages
+
+Arrange:
+
+* next_retry_at in future
+
+Assert:
+
+* not claimed
+
+---
+
+### Should_claim_retryable_messages
+
+Arrange:
+
+* next_retry_at <= current time
+
+Assert:
+
+* claimed
+
+---
+
+## 4. STUCK MESSAGE RECOVERY
+
+### Should_recover_stuck_processing_messages
+
+Arrange:
+
+* processing message older than timeout
+
+Act:
+
+* ClaimPendingAsync
+
+Assert:
+
+* reclaimed successfully
+
+---
+
+### Should_not_recover_recent_processing_messages
+
+Arrange:
+
+* processing_at recent
+
+Assert:
+
+* not reclaimed
+
+---
+
+## 5. CONCURRENCY TESTS (MOST IMPORTANT)
+
+### Should_not_claim_same_message_twice
+
+Arrange:
+
+* insert pending messages
+
+Act:
+
+* run multiple concurrent ClaimPendingAsync calls
+
+Assert:
+
+* no duplicate IDs across workers
+
+IMPORTANT:
+
+* validate locking hints behavior
+
+---
+
+### Should_distribute_work_between_workers
+
+Arrange:
+
+* insert 100 pending messages
+
+Act:
+
+* run 5 concurrent workers
+
+Assert:
+
+* messages distributed uniquely
+
+---
+
+### Should_handle_high_concurrency_without_duplicates
+
+Arrange:
+
+* large dataset
+
+Act:
+
+* high parallel ClaimPendingAsync
+
+Assert:
+
+* no duplicate processing
+
+---
+
+## 6. UPDATE TESTS
+
+### Should_update_processing_message
+
+Arrange:
+
+* processing message
+
+Act:
+
+* UpdateAsync
+
+Assert:
+
+* status updated
+
+---
+
+### Should_not_update_non_processing_message
+
+Arrange:
+
+* pending/sent message
+
+Act:
+
+* UpdateAsync
+
+Assert:
+
+* 0 rows affected behavior
+
+---
+
+### Should_log_warning_when_update_affects_zero_rows
+
+Arrange:
+
+* row modified by another worker
+
+Assert:
+
+* warning logged
+
+---
+
+## 7. MAPPING TESTS
+
+### Should_map_all_columns_correctly
+
+Verify:
+
+* snake_case SQL aliases
+* nullable fields
+* datetime fields
+
+---
+
+## 8. EDGE CASES
+
+### Empty table
+
+### Very large batch size
+
+### Null optional fields
+
+### Long error messages
+
+### Concurrent updates
+
+---
+
+## 9. TRANSACTION & LOCKING BEHAVIOR
+
+### Should_use_readpast_to_avoid_blocking
+
+Arrange:
+
+* lock rows in one transaction
+
+Act:
+
+* ClaimPendingAsync from another connection
+
+Assert:
+
+* locked rows skipped
+
+---
+
+### Should_use_updlock_to_prevent_race_conditions
+
+Verify:
+
+* no double claim
+
+---
+
+## 10. PERFORMANCE TESTS
+
+### Should_claim_large_batches_efficiently
+
+Arrange:
+
+* 10,000 rows
+
+Assert:
+
+* execution time acceptable
+
+---
+
+## DATABASE SETUP
+
+Specify required schema:
+
+message_log table
+
+Required indexes:
+
+* IX_message_log_processing
+
+---
+
+## CLEANUP STRATEGY
+
+Recommend one:
+
+* transaction rollback per test
+  OR
+* recreate table per test
+  OR
+* truncate table before each test
+
+---
+
+## ASSERTIONS
+
+Each test must verify:
+
+* actual database state
+* row counts
+* status transitions
+* timestamps
+* concurrency correctness
+
+---
+
+## IMPORTANT
+
+Focus on REAL SQL Server behavior.
+
+Do NOT use:
+
+* in-memory database
+* mocked repository
+* fake Dapper behavior
+
+The purpose is to validate:
+
+* locking
+* concurrency
+* SQL correctness
+* race condition prevention
+
+---
+
+## GOAL
+
+The specification must guarantee:
+
+* no duplicate claims
+* safe concurrent processing
+* correct retry behavior
+* production-safe SQL behavior
+
+Focus on real-world robustness and concurrency correctness.

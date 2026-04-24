@@ -1,0 +1,172 @@
+You are a senior .NET engineer specializing in test-driven development.
+
+Create a COMPLETE test specification (NOT implementation) for MessageProcessorService.
+
+The goal is to enable high code coverage and verify all critical behaviors.
+
+---
+
+## CONTEXT
+
+MessageProcessorService is a background worker that:
+
+* Claims messages from IMessageRepository
+* Processes messages using handlers (Email / WhatsApp)
+* Uses ICircuitBreaker
+* Uses IRateLimiter
+* Updates message status
+* Handles retry with exponential backoff
+* Uses concurrency control via SemaphoreSlim
+
+---
+
+## OUTPUT FORMAT
+
+Generate:
+
+1. Test class structure
+2. Test case names (clear and descriptive)
+3. Arrange / Act / Assert description per test
+4. Required mocks
+5. Edge cases
+
+DO NOT write actual test code, only SPEC.
+
+---
+
+## REQUIRED TEST CATEGORIES
+
+---
+
+### 1. CLAIMING & PROCESSING
+
+* Should_claim_pending_messages
+* Should_not_process_when_no_messages
+* Should_process_multiple_messages
+
+---
+
+### 2. SUCCESS FLOW
+
+* Should_mark_message_as_sent_on_success
+* Should_set_sent_at_timestamp
+* Should_call_circuit_breaker_on_success
+
+---
+
+### 3. HANDLER RESOLUTION
+
+* Should_use_email_handler_for_email_channel
+* Should_use_whatsapp_handler_for_whatsapp_channel
+* Should_throw_for_unknown_channel
+
+---
+
+### 4. RATE LIMITING
+
+* Should_reschedule_when_rate_limiter_blocks
+* Should_not_call_handler_when_rate_limited
+
+---
+
+### 5. CIRCUIT BREAKER
+
+* Should_reschedule_when_circuit_is_open
+* Should_not_call_handler_when_circuit_open
+* Should_call_circuit_breaker_on_failure
+
+---
+
+### 6. RETRY LOGIC
+
+* Should_increment_retry_count_on_failure
+* Should_apply_exponential_backoff
+* Should_mark_as_failed_after_max_retries
+
+---
+
+### 7. EXCEPTION HANDLING
+
+* Should_handle_general_exception_and_retry
+* Should_handle_rate_limit_exception
+* Should_handle_circuit_breaker_exception
+
+---
+
+### 8. CONCURRENCY
+
+* Should_limit_concurrent_processing
+* Should_not_process_same_message_twice
+
+---
+
+### 9. RESCHEDULING
+
+* Should_set_next_retry_at_correctly
+* Should_reset_processing_at_on_reschedule
+
+---
+
+### 10. EDGE CASES
+
+* Null channel
+* Empty tenant id
+* Invalid message state
+
+---
+
+## MOCK REQUIREMENTS
+
+List all required mocks:
+
+* IMessageRepository
+* IRateLimiter
+* ICircuitBreaker
+* IServiceProvider
+* IMessageHandler (EmailHandler / WhatsAppHandler)
+
+---
+
+## ASSERTIONS
+
+For each test, specify:
+
+* repository.UpdateAsync called with correct values
+* handler called or NOT called
+* circuit breaker invoked correctly
+* rate limiter invoked correctly
+
+---
+
+## GOAL
+
+The spec should cover:
+
+* all branches
+* all failure paths
+* all retry paths
+* concurrency behavior
+
+---
+
+Focus on clarity and completeness.
+
+Generate detailed test spec for my MessageProcessorService
+REQUIREMENTS:	
+	- Gunakan clean architecture sederhana 
+	- Gunakan dependency injection 
+	- Hindari static state 
+	- Code harus thread-safe 
+			
+TESTING: 
+	- Gunakan xUnit 
+	- Gunakan Moq untuk dependency 
+	- Cover: 
+		- happy path 
+		- edge cases 
+		- error cases 
+		
+		
+OUTPUT: 
+	- implementation 
+	- unit test

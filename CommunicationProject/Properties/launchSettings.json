@@ -1,6 +1,6 @@
-{
+﻿{
   "profiles": {
-    "CommunicationService": {
+    "CommunicationServices": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

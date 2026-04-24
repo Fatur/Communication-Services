@@ -123,7 +123,7 @@ namespace CommunicationServices.Worker
                     message.Status = "sent";
                     message.SentAt = DateTime.UtcNow;
                     message.ProcessingAt = null;
-                    await repository.UpdateAsync(message);
+                    await repository.UpdateAsync(message, ct);
 
                     _circuitBreaker.OnSuccess(channel);
                     _logger.LogInformation("Message {MessageId} sent successfully for tenant {Tenant} channel {Channel}", message.Id, message.TenantId, channel);
@@ -141,6 +141,17 @@ namespace CommunicationServices.Worker
                 }
                 catch (Exception ex)
                 {
+                    // If the handler resolution failed because channel is unknown, mark permanently failed with a clear message
+                    if (ex is InvalidOperationException && ex.Message.StartsWith("Unknown channel", StringComparison.OrdinalIgnoreCase))
+                    {
+                        message.ErrorMessage = "No handler";
+                        message.Status = "failed";
+                        message.ProcessingAt = null;
+                        await repository.UpdateAsync(message, ct);
+                        _logger.LogError(ex, "Message {MessageId} failed due to unknown channel for tenant {Tenant} channel {Channel}", message.Id, message.TenantId, channel);
+                        return;
+                    }
+
                     await HandleProcessingFailureAsync(repository, message, channel, ex, ct);
                 }
             }
@@ -152,10 +163,12 @@ namespace CommunicationServices.Worker
 
         private IMessageHandler ResolveHandler(IServiceProvider provider, string channel)
         {
+            // Use non-generic GetService to allow tests to return mocks or other objects
+            // that implement IMessageHandler even if they are not the concrete handler type.
             return channel switch
             {
-                Channels.Email => provider.GetRequiredService<Application.Handlers.EmailHandler>() as IMessageHandler ?? throw new InvalidOperationException("EmailHandler not registered"),
-                Channels.WhatsApp => provider.GetRequiredService<Application.Handlers.WhatsAppHandler>() as IMessageHandler ?? throw new InvalidOperationException("WhatsAppHandler not registered"),
+                Channels.Email => provider.GetService(typeof(Application.Handlers.EmailHandler)) as IMessageHandler ?? throw new InvalidOperationException("EmailHandler not registered"),
+                Channels.WhatsApp => provider.GetService(typeof(Application.Handlers.WhatsAppHandler)) as IMessageHandler ?? throw new InvalidOperationException("WhatsAppHandler not registered"),
                 _ => throw new InvalidOperationException($"Unknown channel '{channel}'")
             };
         }
@@ -163,9 +176,11 @@ namespace CommunicationServices.Worker
         private async Task RescheduleAsync(IMessageRepository repository, MessageLog message, TimeSpan delay, string reason, CancellationToken ct)
         {
             message.Status = "pending";
+            // increment retry count when rescheduling so retries are tracked
+            message.RetryCount++;
             message.NextRetryAt = DateTime.UtcNow.Add(delay);
             message.ProcessingAt = null;
-            await repository.UpdateAsync(message);
+            await repository.UpdateAsync(message, ct);
         }
 
         private async Task HandleProcessingFailureAsync(IMessageRepository repository, MessageLog message, string channel, Exception ex, CancellationToken ct)
@@ -177,7 +192,7 @@ namespace CommunicationServices.Worker
             if (message.RetryCount > 5)
             {
                 message.Status = "failed";
-                await repository.UpdateAsync(message);
+                await repository.UpdateAsync(message, ct);
                 _logger.LogError(ex, "Message {MessageId} failed permanently after retries for tenant {Tenant} channel {Channel}", message.Id, message.TenantId, channel);
                 _circuitBreaker.OnFailure(channel);
             }
@@ -188,7 +203,7 @@ namespace CommunicationServices.Worker
                 var delay = TimeSpan.FromSeconds(backoff + jitter);
                 message.Status = "pending";
                 message.NextRetryAt = DateTime.UtcNow.Add(delay);
-                await repository.UpdateAsync(message);
+                await repository.UpdateAsync(message, ct);
                 _logger.LogWarning(ex, "Message {MessageId} failed, will retry in {Delay} (retry #{RetryCount}) for tenant {Tenant} channel {Channel}", message.Id, delay, message.RetryCount, message.TenantId, channel);
                 _circuitBreaker.OnFailure(channel);
             }

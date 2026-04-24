@@ -16,13 +16,23 @@ namespace CommunicationServices.Infrastructure.Circuit
         private readonly ConcurrentDictionary<string, State> _states = new();
         private const int FailureThreshold = 5;
         private static readonly TimeSpan OpenDuration = TimeSpan.FromSeconds(60);
+        private readonly CommunicationServices.Infrastructure.Time.IClock _clock;
+
+        public MemoryCircuitBreaker() : this(new CommunicationServices.Infrastructure.Time.RealClock())
+        {
+        }
+
+        public MemoryCircuitBreaker(CommunicationServices.Infrastructure.Time.IClock clock)
+        {
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        }
 
         public bool IsOpen(string channel)
         {
             var state = _states.GetOrAdd(channel, _ => new State());
             lock (state.Lock)
             {
-                if (state.OpenUntil.HasValue && state.OpenUntil.Value > DateTime.UtcNow)
+                if (state.OpenUntil.HasValue && state.OpenUntil.Value > _clock.UtcNow)
                     return true;
 
                 return false;
@@ -47,7 +57,7 @@ namespace CommunicationServices.Infrastructure.Circuit
                 state.Failures++;
                 if (state.Failures >= FailureThreshold)
                 {
-                    state.OpenUntil = DateTime.UtcNow.Add(OpenDuration);
+                    state.OpenUntil = _clock.UtcNow.Add(OpenDuration);
                     state.Failures = 0;
                 }
             }
@@ -58,9 +68,9 @@ namespace CommunicationServices.Infrastructure.Circuit
             var state = _states.GetOrAdd(channel, _ => new State());
             lock (state.Lock)
             {
-                if (state.OpenUntil.HasValue && state.OpenUntil.Value > DateTime.UtcNow)
+                if (state.OpenUntil.HasValue && state.OpenUntil.Value > _clock.UtcNow)
                 {
-                    return state.OpenUntil.Value - DateTime.UtcNow;
+                    return state.OpenUntil.Value - _clock.UtcNow;
                 }
 
                 return null;

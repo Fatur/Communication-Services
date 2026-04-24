@@ -16,7 +16,7 @@ using CommunicationServices.Infrastructure.Circuit;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuration
-var connectionString = builder.Configuration.GetConnectionString("Default") ?? "Server=localhost;Database=commservice;Trusted_Connection=True;";
+var connectionString = builder.Configuration.GetConnectionString("SQLExpress") ?? "Server=localhost;Database=commservice;Trusted_Connection=True;";
 
 // Services
 builder.Services.AddControllers();
@@ -24,7 +24,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // DB connection factory
-builder.Services.AddTransient<IDbConnection>(sp => new SqlConnection(connectionString));
+// IMPORTANT: IDbConnection must be registered as Scoped, NOT Singleton.
+// A scoped registration ensures a single IDbConnection instance is used per DI scope (e.g. per request
+// or per worker scope) which preserves correct connection lifecycle and avoids sharing a single
+// connection across concurrently executing operations.
+builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(connectionString));
 
 // Repositories / infrastructure
 builder.Services.AddScoped<IMessageRepository, DapperMessageRepository>();
@@ -53,9 +57,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CommunicationService v1"));
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CommunicationServices v1"));
 }
 
 app.MapControllers();
 
 app.Run();
+
+
+

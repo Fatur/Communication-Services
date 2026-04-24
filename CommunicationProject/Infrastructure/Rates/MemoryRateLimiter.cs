@@ -15,6 +15,17 @@ namespace CommunicationServices.Infrastructure.Rates
         }
 
         private readonly ConcurrentDictionary<string, Bucket> _buckets = new();
+        private readonly CommunicationServices.Infrastructure.Time.IClock _clock;
+
+        public MemoryRateLimiter() : this(new CommunicationServices.Infrastructure.Time.RealClock())
+        {
+        }
+
+        // For production, callers should inject a real clock implementation that wraps DateTime.UtcNow.
+        public MemoryRateLimiter(CommunicationServices.Infrastructure.Time.IClock clock)
+        {
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        }
 
         private int GetLimit(string channel)
         {
@@ -29,10 +40,10 @@ namespace CommunicationServices.Infrastructure.Rates
         public Task<bool> TryAcquireAsync(string tenantId, string channel)
         {
             var key = $"{tenantId}:{channel}";
-            var bucket = _buckets.GetOrAdd(key, _ => new Bucket { Count = 0, WindowStart = DateTime.UtcNow });
+            var bucket = _buckets.GetOrAdd(key, _ => new Bucket { Count = 0, WindowStart = _clock.UtcNow });
             lock (bucket.Lock)
             {
-                var now = DateTime.UtcNow;
+                var now = _clock.UtcNow;
                 if ((now - bucket.WindowStart).TotalSeconds >= 1)
                 {
                     bucket.Count = 0;
