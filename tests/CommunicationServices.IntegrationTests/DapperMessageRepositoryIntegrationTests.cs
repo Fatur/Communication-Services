@@ -54,7 +54,7 @@ namespace CommunicationServices.IntegrationTests
             // Arrange: Get connection string from environment or config
             // Expected: "Server=.\SQLEXPRESS;Database=TestCommunicationServices;Trusted_Connection=True;"
             // OR LocalDB: "Server=(LocalDB)\\mssqllocaldb;Database=TestCommunicationServices;Trusted_Connection=True;"
-            var connStr = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING");
+            var connStr = Environment.GetEnvironmentVariable("TestDatabase");
             if (string.IsNullOrEmpty(connStr))
             {
                 connStr = @"Server=.\SQLEXPRESS;Database=TestCommunicationServices;Trusted_Connection=True;";
