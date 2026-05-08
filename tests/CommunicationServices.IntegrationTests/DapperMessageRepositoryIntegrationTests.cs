@@ -57,7 +57,7 @@ namespace CommunicationServices.IntegrationTests
             var connStr = Environment.GetEnvironmentVariable("TestDatabase");
             if (string.IsNullOrEmpty(connStr))
             {
-                connStr = @"Server=.\SQLEXPRESS;Database=TestCommunicationServices;Trusted_Connection=True;";
+                connStr = @"Server=(localdb)\MSSQLLocalDB;Database=TestCommunicationServices;Trusted_Connection=True;TrustServerCertificate=True;";
             }
             return connStr;
         }
@@ -160,9 +160,10 @@ namespace CommunicationServices.IntegrationTests
 
         private MessageLog CreateTestMessage(
             Guid? id = null,
-            string tenantId = "tenant-1",
+            string tenantId = "APOLLOLIVE",
             string channel = "email",
-            string recipient = "test@example.com",
+            IList<string> recipients = null,
+
             string status = "pending",
             int retryCount = 0,
             string? errorMessage = null,
@@ -174,7 +175,8 @@ namespace CommunicationServices.IntegrationTests
                 Id = id ?? Guid.NewGuid(),
                 TenantId = tenantId,
                 Channel = channel,
-                Recipient = recipient,
+                Recipients = recipients ?? new List<string> { "test@example.com" },
+                Requestor = "Soficloud",
                 TemplateCode = "WELCOME",
                 DataJson = "{\"name\": \"Test User\"}",
                 Status = status,
@@ -300,7 +302,7 @@ namespace CommunicationServices.IntegrationTests
             // Assert
             Assert.NotNull(retrieved);
             Assert.Equal(messageId, retrieved!.Id);
-            Assert.Equal("tenant-1", retrieved.TenantId);
+            Assert.Equal("APOLLOLIVE", retrieved.TenantId);
             Assert.Equal("email", retrieved.Channel);
             Assert.Equal("test@example.com", retrieved.Recipient);
         }

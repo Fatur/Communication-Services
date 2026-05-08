@@ -12,23 +12,29 @@ using CommunicationServices.Worker;
 using CommunicationServices.Application.Handlers;
 using CommunicationServices.Infrastructure.Rates;
 using CommunicationServices.Infrastructure.Circuit;
+using Microsoft.Extensions.Caching.Memory;
+using CommunicationServices.Infrastructure.Factory;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuration
-var connectionString = builder.Configuration.GetConnectionString("SQLExpress") ?? "Server=localhost;Database=commservice;Trusted_Connection=True;";
+var comConnectionString = builder.Configuration.GetConnectionString("Default");
+CommunicationServices.Helper.Encryptor.Initialize(builder.Configuration);
 
 // Services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
 
 // DB connection factory
 // IMPORTANT: IDbConnection must be registered as Scoped, NOT Singleton.
 // A scoped registration ensures a single IDbConnection instance is used per DI scope (e.g. per request
 // or per worker scope) which preserves correct connection lifecycle and avoids sharing a single
 // connection across concurrently executing operations.
-builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(connectionString));
+builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(comConnectionString));
+builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>();
 
 // Repositories / infrastructure
 builder.Services.AddScoped<IMessageRepository, DapperMessageRepository>();
@@ -41,8 +47,8 @@ builder.Services.AddSingleton<IWhatsAppProvider, WhatsAppProvider>();
 builder.Services.AddSingleton<ITemplateService, TemplateService>();
 
 // Handlers
-builder.Services.AddSingleton<EmailHandler>();
-builder.Services.AddSingleton<WhatsAppHandler>();
+builder.Services.AddScoped<EmailHandler>();
+builder.Services.AddScoped<WhatsAppHandler>();
 
 // Rate limiter & circuit breaker
 builder.Services.AddSingleton<IRateLimiter, MemoryRateLimiter>();

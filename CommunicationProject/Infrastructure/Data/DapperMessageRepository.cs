@@ -38,8 +38,9 @@ namespace CommunicationServices.Infrastructure.Data
 
         public async Task InsertAsync(MessageLog message, CancellationToken ct = default)
         {
-            const string sql = @"INSERT INTO message_log (id, tenant_id, channel, recipient, template_code, data_json, status, retry_count, error_message, next_retry_at, processing_at, created_at, sent_at)
-VALUES (@Id, @TenantId, @Channel, @Recipient, @TemplateCode, @DataJson, @Status, @RetryCount, @ErrorMessage, @NextRetryAt, @ProcessingAt, @CreatedAt, @SentAt);";
+            message.Recipient = string.Join(",", message.Recipients);
+            const string sql = @"INSERT INTO message_log (id, tenant_id, requestor, channel, web_menu_id, recipient, template_code, email_json, data_json, attachment_path, status, retry_count, error_message, next_retry_at, processing_at, created_at, sent_at)
+VALUES (@Id, @TenantId, @Requestor, @Channel, @WebMenuId, @Recipient, @TemplateCode, @EmailJson, @DataJson, @AttachmentPaths, @Status, @RetryCount, @ErrorMessage, @NextRetryAt, @ProcessingAt, @CreatedAt, @SentAt);";
 
             var cmd = new CommandDefinition(sql, message, commandTimeout: CommandTimeoutSeconds, cancellationToken: ct);
             await _db.ExecuteAsync(cmd);
@@ -47,9 +48,13 @@ VALUES (@Id, @TenantId, @Channel, @Recipient, @TemplateCode, @DataJson, @Status,
 
         public async Task<MessageLog?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
-            const string sql = "SELECT id, tenant_id AS TenantId, channel, recipient, template_code AS TemplateCode, data_json AS DataJson, status, retry_count AS RetryCount, error_message AS ErrorMessage, next_retry_at AS NextRetryAt, processing_at AS ProcessingAt, created_at AS CreatedAt, sent_at AS SentAt FROM message_log WHERE id = @Id";
+            const string sql = "SELECT id, tenant_id AS TenantId, requestor, channel, recipient, template_code AS TemplateCode, email_json AS EmailJson, data_json AS DataJson, attachment_path AS AttachmentPaths, status, retry_count AS RetryCount, error_message AS ErrorMessage, next_retry_at AS NextRetryAt, processing_at AS ProcessingAt, created_at AS CreatedAt, sent_at AS SentAt FROM message_log WHERE id = @Id";
             var cmd = new CommandDefinition(sql, new { Id = id }, commandTimeout: CommandTimeoutSeconds, cancellationToken: ct);
-            return await _db.QueryFirstOrDefaultAsync<MessageLog>(cmd);
+            var result = await _db.QuerySingleOrDefaultAsync<MessageLog>(cmd);
+            if (result != null) {
+                result.Recipients = result.Recipient?.Split(',') ?? Array.Empty<string>();
+            }
+            return result;
         }
 
         /// <summary>
@@ -89,10 +94,14 @@ SET
 OUTPUT
     inserted.id AS Id,
     inserted.tenant_id AS TenantId,
+    inserted.requestor AS Requestor,
     inserted.channel AS Channel,
+    inserted.web_menu_id AS WebMenuId,
     inserted.recipient AS Recipient,
     inserted.template_code AS TemplateCode,
+    inserted.email_json AS EmailJson,
     inserted.data_json AS DataJson,
+    inserted.attachment_path AS AttachmentPaths,
     inserted.status AS Status,
     inserted.retry_count AS RetryCount,
     inserted.error_message AS ErrorMessage,
