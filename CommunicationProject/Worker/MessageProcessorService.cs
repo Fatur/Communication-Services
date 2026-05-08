@@ -60,6 +60,7 @@ namespace CommunicationServices.Worker
                     var tasks = new List<Task>(batch.Count);
                     foreach (var message in batch)
                     {
+                        message.Recipients = message.Recipient.Split(",");
                         // start a task per message; each task will create its own scope and repository
                         tasks.Add(ProcessSingleMessageAsync(message, stoppingToken));
                     }

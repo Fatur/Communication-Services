@@ -1,9 +1,11 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using CommunicationServices.Application.DTOs;
 using CommunicationServices.Application.Interfaces;
 using CommunicationServices.Domain.Entities;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace CommunicationServices.Api.Controllers
 {
@@ -21,6 +23,7 @@ namespace CommunicationServices.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] MessageRequest req)
         {
+            var requestor = Request.Headers["X-Requestor"].ToString();
             var id = Guid.NewGuid();
             var now = DateTime.UtcNow;
             var message = new MessageLog
@@ -28,8 +31,10 @@ namespace CommunicationServices.Api.Controllers
                 Id = id,
                 TenantId = req.TenantId,
                 Channel = req.Channel,
-                Recipient = req.To,
+                Recipients = req.To,
+                Recipient = string.Join(",", req.To),
                 TemplateCode = req.TemplateCode,
+                Requestor = requestor,
                 DataJson = req.Data?.ToJsonString() ?? "{}",
                 Status = "pending",
                 RetryCount = 0,
@@ -39,6 +44,22 @@ namespace CommunicationServices.Api.Controllers
                 CreatedAt = now,
                 SentAt = null
             };
+
+            if (req.EmailPayload != null)
+            {
+                message.EmailJson = JsonSerializer.Serialize(req.EmailPayload);
+            }
+
+            if (req.Attachments != null && req.Attachments.Count > 0)
+            {
+                for (int i = 0; i < req.Attachments.Count; i++)
+                {
+                    var attach = req.Attachments[i];
+                    var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, string.Format("{0}.{1}", attach.FileName, attach.MediaType));
+                    System.IO.File.WriteAllBytes(path, Convert.FromBase64String(attach.Base64));
+                    message.AttachmentPaths += path + ";";
+                }
+            }
 
             await _repo.InsertAsync(message);
             return Ok(new { message_id = id });

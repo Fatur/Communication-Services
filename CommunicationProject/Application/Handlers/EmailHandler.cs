@@ -41,7 +41,7 @@ namespace CommunicationServices.Application.Handlers
             }
 
             var body = await _templateService.RenderAsync(message.TemplateCode, message.DataJson);
-            await _emailProvider.SendAsync(message.Recipient, body);
+            await _emailProvider.SendAsync(message, body);
             _logger.LogInformation("Email sent to {To}", message.Recipient);
         }
     }
