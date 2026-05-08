@@ -57,7 +57,7 @@ namespace CommunicationServices.IntegrationTests
             var connStr = Environment.GetEnvironmentVariable("TestDatabase");
             if (string.IsNullOrEmpty(connStr))
             {
-                connStr = @"Server=157.245.52.129;Database=Communication;User Id=sa;Password=S31panas;TrustServerCertificate=True;";
+                connStr = @"Server=(localdb)\MSSQLLocalDB;Database=TestCommunicationServices;Trusted_Connection=True;TrustServerCertificate=True;";
             }
             return connStr;
         }
