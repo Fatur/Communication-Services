@@ -19,8 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configuration
 var comConnectionString = builder.Configuration.GetConnectionString("Default");
-var custConnectionString = builder.Configuration.GetConnectionString("Cust");
-var pisiCustConnectionString = builder.Configuration.GetConnectionString("PisiCust");
+CommunicationServices.Helper.Encryptor.Initialize(builder.Configuration);
 
 // Services
 builder.Services.AddControllers();

@@ -68,7 +68,7 @@ namespace CommunicationServices.Infrastructure.Providers
         {
             try
             {
-                using var dbConnection = await _connectionFactory.GetConnection(Requestor.Soficloud, tenantId);
+                using var dbConnection = await _connectionFactory.GetConnectionAsync(Requestor.Soficloud, tenantId);
                 var sql = "SELECT WhatsappHost FROM tblsetup";
                 var cmd = new CommandDefinition(sql, cancellationToken: default);
                 var result = await dbConnection.QueryFirstOrDefaultAsync<string>(cmd);

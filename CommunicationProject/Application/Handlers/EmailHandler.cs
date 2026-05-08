@@ -4,6 +4,7 @@ using CommunicationServices.Application.Interfaces;
 using CommunicationServices.Domain.Entities;
 using CommunicationServices.Application.Exceptions;
 using CommunicationServices.Infrastructure.Templates;
+using CommunicationServices.Infrastructure.Enum;
 
 namespace CommunicationServices.Application.Handlers
 {
@@ -41,7 +42,13 @@ namespace CommunicationServices.Application.Handlers
             }
 
             var body = await _templateService.RenderAsync(message.TemplateCode, message.DataJson);
-            await _emailProvider.SendAsync(message, body);
+            if (!Enum.TryParse(message.Requestor, out Requestor requestor))
+            {
+                _logger.LogError("Unsupported requestor: {Requestor}", message.Requestor);
+                throw new NotSupportedException($"Unsupported requestor: {message.Requestor}");
+            }
+
+            await _emailProvider.SendAsync(requestor, message, body);
             _logger.LogInformation("Email sent to {To}", message.Recipient);
         }
     }

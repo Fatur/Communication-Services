@@ -39,8 +39,8 @@ namespace CommunicationServices.Infrastructure.Data
         public async Task InsertAsync(MessageLog message, CancellationToken ct = default)
         {
             message.Recipient = string.Join(",", message.Recipients);
-            const string sql = @"INSERT INTO message_log (id, tenant_id, requestor, channel, recipient, template_code, email_json, data_json, attachment_path, status, retry_count, error_message, next_retry_at, processing_at, created_at, sent_at)
-VALUES (@Id, @TenantId, @Requestor, @Channel, @Recipient, @TemplateCode, @EmailJson, @DataJson, @AttachmentPaths, @Status, @RetryCount, @ErrorMessage, @NextRetryAt, @ProcessingAt, @CreatedAt, @SentAt);";
+            const string sql = @"INSERT INTO message_log (id, tenant_id, requestor, channel, web_menu_id, recipient, template_code, email_json, data_json, attachment_path, status, retry_count, error_message, next_retry_at, processing_at, created_at, sent_at)
+VALUES (@Id, @TenantId, @Requestor, @Channel, @WebMenuId, @Recipient, @TemplateCode, @EmailJson, @DataJson, @AttachmentPaths, @Status, @RetryCount, @ErrorMessage, @NextRetryAt, @ProcessingAt, @CreatedAt, @SentAt);";
 
             var cmd = new CommandDefinition(sql, message, commandTimeout: CommandTimeoutSeconds, cancellationToken: ct);
             await _db.ExecuteAsync(cmd);
@@ -96,6 +96,7 @@ OUTPUT
     inserted.tenant_id AS TenantId,
     inserted.requestor AS Requestor,
     inserted.channel AS Channel,
+    inserted.web_menu_id AS WebMenuId,
     inserted.recipient AS Recipient,
     inserted.template_code AS TemplateCode,
     inserted.email_json AS EmailJson,

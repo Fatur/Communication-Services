@@ -8,6 +8,7 @@ namespace CommunicationServices.Domain.Entities
         public string TenantId { get; set; } = string.Empty;
         public string Requestor { get; set; } = string.Empty;
         public string Channel { get; set; } = string.Empty;
+        public int? WebMenuId { get; set; }
         public string Recipient { get; set; } = string.Empty;
         public IList<string> Recipients { get; set; } = new List<string>();
         public string TemplateCode { get; set; } = string.Empty;

@@ -24,6 +24,12 @@ namespace CommunicationServices.Api.Controllers
         public async Task<IActionResult> Post([FromBody] MessageRequest req)
         {
             var requestor = Request.Headers["X-Requestor"].ToString();
+            var WebMenuId = Request.Headers["X-WebMenuId"].ToString();
+            if (string.IsNullOrEmpty(requestor))
+            {
+                return BadRequest("Missing X-Requestor header");
+            }
+
             var id = Guid.NewGuid();
             var now = DateTime.UtcNow;
             var message = new MessageLog
@@ -35,6 +41,7 @@ namespace CommunicationServices.Api.Controllers
                 Recipient = string.Join(",", req.To),
                 TemplateCode = req.TemplateCode,
                 Requestor = requestor,
+                WebMenuId = int.TryParse(WebMenuId, out var menuId) ? menuId : (int?)null,
                 DataJson = req.Data?.ToJsonString() ?? "{}",
                 Status = "pending",
                 RetryCount = 0,

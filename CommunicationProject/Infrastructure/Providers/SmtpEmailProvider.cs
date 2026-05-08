@@ -1,10 +1,12 @@
+using CommunicationServices.Application.Interfaces;
+using CommunicationServices.Domain.Entities;
+using CommunicationServices.Infrastructure.Enum;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
-using CommunicationServices.Application.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace CommunicationServices.Infrastructure.Providers
 {
@@ -19,7 +21,7 @@ namespace CommunicationServices.Infrastructure.Providers
             _logger = logger;
         }
 
-        public async Task SendAsync(string to, string body)
+        public async Task SendAsync(Requestor requestor, MessageLog message, string body)
         {
             var host = _configuration["Smtp:Host"]
                 ?? throw new InvalidOperationException("Smtp:Host is not configured.");
@@ -34,7 +36,7 @@ namespace CommunicationServices.Infrastructure.Providers
             var subject = _configuration["Smtp:DefaultSubject"] ?? "No Subject";
             var enableSsl = bool.Parse(_configuration["Smtp:EnableSsl"] ?? "true");
 
-            _logger.LogInformation("Sending email to {To} via {Host}:{Port}", to, host, port);
+            _logger.LogInformation("Sending email to {To} via {Host}:{Port}", message.Recipient, host, port);
 
             try
             {
@@ -44,27 +46,31 @@ namespace CommunicationServices.Infrastructure.Providers
                     EnableSsl = enableSsl
                 };
 
-                using var message = new MailMessage
+                using var mailMessage = new MailMessage
                 {
                     From = new MailAddress(senderEmail, senderName),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = false
                 };
-                message.To.Add(to);
 
-                await client.SendMailAsync(message);
+                foreach (var receipent in message.Recipients)
+                {
+                    mailMessage.To.Add(new MailAddress(receipent));
+                }
 
-                _logger.LogInformation("Email successfully sent to {To}", to);
+                await client.SendMailAsync(mailMessage);
+
+                _logger.LogInformation("Email successfully sent to {To}", string.Join(", ", message.Recipient));
             }
             catch (SmtpException ex)
             {
-                _logger.LogError(ex, "Failed to send email to {To}. SmtpStatusCode: {StatusCode}", to, ex.StatusCode);
-                throw new InvalidOperationException($"Failed to send email to '{to}': {ex.Message}", ex);
+                _logger.LogError(ex, "Failed to send email to {To}. SmtpStatusCode: {StatusCode}", message.Recipient, ex.StatusCode);
+                throw new InvalidOperationException($"Failed to send email to '{message.Recipient}': {ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error sending email to {To}", to);
+                _logger.LogError(ex, "Unexpected error sending email to {To}", message.Recipient);
                 throw;
             }
         }

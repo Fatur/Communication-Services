@@ -6,6 +6,6 @@ namespace CommunicationServices.Application.Interfaces
 {
     public interface IEmailProvider
     {
-        Task SendAsync(MessageLog message, string body);
+        Task SendAsync(Requestor requestor, MessageLog message, string body);
     }
 }
